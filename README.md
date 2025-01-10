@@ -23,4 +23,6 @@ chmod +x Allw*
 ```
 ./Allwmake
 ```
-### After compilation change to the *cases* folder check the respetive *README.md* files
+### After compilation change to the *cases* folder check the respective *README.md* files
+
+The authors welcome suggestions to improve the repository/test cases/ code

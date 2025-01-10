@@ -7,8 +7,7 @@ EXE_INC = \
     -I$(LIB_SRC)/transportModels \
     -I$(LIB_SRC)/transportModels/incompressible/singlePhaseTransportModel \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
-    -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
-    -g -ggdb3 -O0
+    -I$(LIB_SRC)/dynamicFvMesh/lnInclude 
 
 EXE_LIBS = \
     -lfiniteVolume \

@@ -53,7 +53,7 @@ def FT(t, A2, vel_grad, closure_fn, xi, CI):
     # Computes A4 given A2 through a closure relationship
     A4 = closure_fn(A2)
     
-    #%% Method 1: As proposed in Advani and Tucker (1987)
+    #%% Method 1: As proposed by Advani and Tucker (1987)
 
     # # Computes rate-of-deformation tensor from the velocity gradient
     # D = (np.transpose(vel_grad(t)) + vel_grad(t))
@@ -77,7 +77,7 @@ def FT(t, A2, vel_grad, closure_fn, xi, CI):
     # )
     # return result.ravel()
 
-    #%% Method 2: As reported in Favaloro and Tucker (2019)
+    #%% Method 2: As reported by Favaloro and Tucker (2019)
     
     # D, W, shrRate = flowFieldTensors(t, vel_grad)
        
