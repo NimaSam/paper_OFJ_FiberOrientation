@@ -1,0 +1,106 @@
+#!/bin/bash
+set -e  # exit on first error
+
+# Note: run the script as: ./runBatch_simpleShear
+# Note: All .csv file must be in the script folder
+# Note: Load anaconda for running this script
+# Note: Activate OF2212 for running this script
+
+# Check if exactly one argument is provided
+if [ "$#" -ne 1 ]; then
+    echo "#############"
+    echo "Usage: $0 <argument> (Where <argument> can be either FT, MRD or iARD)"
+    echo "#############"
+    exit 1
+fi
+
+# Get the argument
+ARG="$1"
+CLOSURES=""
+
+# Use a case statement to define the closures to run
+case "$ARG" in
+    "FT")
+        CLOSURES="hybrid IBOF ORE."
+        ;;
+    "iARD")
+        CLOSURES="IBOF"
+        ;;
+    "MRD")
+        CLOSURES="IBOF"
+        ;;
+    *)
+        CLOSURES=""
+        echo "Unknown closure: $ARG, Usage: $0 <argument> (Where <argument> can be either FT, MRD or iARD)"
+        ;;
+esac
+
+# text colors 
+Green='\033[0;32m'   
+Orange='\033[0;33m'  
+Blue='\033[0;34m'   
+NoColor='\033[0m' 
+
+LINKED_FILE_PATH=$(readlink $0)
+
+SCRIPT_DIR=$(dirname "$LINKED_FILE_PATH")
+
+# Name of the model to append in the output images 
+Model=$ARG
+echo "Model $ARG"
+
+CurrPath=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Loop 
+# for closure in IBOF ORE
+# for closure in hybrid IBOF ORE
+for closure in $CLOSURES
+do
+    # Collect .csv file corresponding to the closure (hybrid IBOF and ORE)
+    dataFileName=$(find ~+ -type f -name "${closure}_${Model}.csv")
+
+    # Check if the variable is null or empty
+    if [ -z "$dataFileName" ]; then
+        echo "Error: The variable dataFileName is null or empty. Stopping execution..."
+        exit 1
+    fi
+
+    # Tell the user which file is currently being used
+    echo "Using file: " $dataFileName
+
+    # Go to the folder
+    cd ../$closure
+
+    # Collect and sort all folder names with partial match "mesh*" 
+    meshFolders=$(find . -type d -name "mesh*" | sort)
+
+    # Loop through mesh folders
+    for i in $meshFolders;
+    do
+        currFolder=$(basename $i);
+        echo -e "${Orange}Going into $currFolder ${NoColor}"
+
+        # Go inside folder
+        cd ${i}
+
+        # Execute the sample dict for the latestTime
+        postProcess -func sampling -latestTime 
+
+        # Catch latest time step folder
+        latestTimeFolder=$(ls  postProcessing/sampling -Art | tail -n 1)
+
+        # path to postProcessing/sampling/latestTimeStep
+        latestTimeFolderPath=postProcessing/sampling/
+        latestTimeFolderPath+="${latestTimeFolder}"
+
+        # Run python script for plotting
+        python3 ${SCRIPT_DIR}/plot_simpleShear.py ${latestTimeFolderPath}/sampling1_U_A2.csv $dataFileName '0,1,2,3,4,5' $Model$closure
+
+        echo -e "${Blue}Leaving $currFolder ${NoColor}"
+        cd ../
+    done
+
+    echo -e "${Green}Returning into $(basename ${SCRIPT_DIR}) ${NoColor}"
+    cd ${CurrPath}
+done
+
