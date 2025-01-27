@@ -1,2 +1,6 @@
 *.vscode
 cases/dis_case/PostProcessData/IBOF_disk.csv
+*.dep
+**/lnInclude/**
+*dependencies*   
+**/Make/linux**
