@@ -68,7 +68,7 @@ void Foam::fiberOrientation::closureModel::computeRSCClosure
 
 void Foam::fiberOrientation::closureModel::createEigenValsAndVecs()
 {
-    if(!eigVals_)
+    if(!eigVals_.valid())
     {
         eigVals_.reset
         (
@@ -88,7 +88,7 @@ void Foam::fiberOrientation::closureModel::createEigenValsAndVecs()
         );
     }
 
-    if(!eigVecs_)
+    if(!eigVecs_.valid())
     {
         eigVecs_.reset
         (
@@ -103,7 +103,9 @@ void Foam::fiberOrientation::closureModel::createEigenValsAndVecs()
                     IOobject::AUTO_WRITE,
                     false 
                 ),
-                eigenVectors(A2_)
+               // eigenVectors(A2_)
+               A2_.mesh(),
+               tensor::zero
             )
         );
     }
@@ -111,14 +113,14 @@ void Foam::fiberOrientation::closureModel::createEigenValsAndVecs()
 
 void Foam::fiberOrientation::closureModel::computeEigenValsAndVecs()
 {
-    if(!eigVals_ || !eigVecs_)
+    if(!eigVals_.valid() || !eigVecs_.valid())
     {
         FatalErrorInFunction
             << "No eigenValues or eigenVectors are created!" << exit(FatalError);
     }
 
-    volVectorField& eigVals = eigVals_.ref();
-    volTensorField& eigVecs = eigVecs_.ref();
+    volVectorField& eigVals = eigVals_();
+    volTensorField& eigVecs = eigVecs_();
 
     forAll(eigVals, cellI)
     {
@@ -133,7 +135,7 @@ void Foam::fiberOrientation::closureModel::updateEigenValsAndVecs
     bool forceCalculation
 )
 {
-    if(!eigVals_ || !eigVecs_)
+    if(!eigVals_.valid() || !eigVecs_.valid())
     {
         createEigenValsAndVecs();
         updatedEig_= true;

@@ -60,7 +60,7 @@ CI_(
         ? readScalar(modelProperties_.lookup("CI")) 
         : computeCI() 
     ),
-omega_(modelProperties_.get<scalar>("omega")),
+omega_(readScalar(modelProperties_.lookup("omega"))),
 C_
 (
     IOobject
@@ -73,7 +73,7 @@ C_
         false
     ),
     mesh,
-    dimensionedSymmTensor(dimless, Foam::Zero)
+    dimensionedSymmTensor("fiberModel_C_", dimless, symmTensor::zero)
 ),
 RPR_(this->closureModel_(), modelProperties_, mesh_)
 {
@@ -88,16 +88,17 @@ void Foam::fiberOrientation::pARD_RPR::solve()
 
     // Set coeff for implicit under-relaxation
     scalar relaxCoeff = 0.0;
-    if (mesh_.relaxEquation(schemesField_))
+    if (mesh_.solutionDict().found("relaxationFactors"))
     {
-        relaxCoeff = mesh_.equationRelaxationFactor(schemesField_);
+        const dictionary& relaxationFactors = mesh_.solutionDict().subDict("relaxationFactors").subDict("equations"); 
+       relaxCoeff = relaxationFactors.lookupOrDefault<scalar>(schemesField_, 0.0);
     }
 
     word divScheme("div(phi," + schemesField_ + ")");
 
     bool converged = false;
 
-    volScalarField alphaClip = pos0(alpha_ - alphaCutOff_);
+    volScalarField alphaClip = pos(alpha_ - alphaCutOff_);
 
     for (label i = 0; i < nCorr_ ; i++)
     {
@@ -140,10 +141,12 @@ void Foam::fiberOrientation::pARD_RPR::solve()
 
         dA2dtEqn.relax(relaxCoeff);
         
-        scalar maxResidual = cmptMax(
-                                        dA2dtEqn.solve(mesh_.solverDict(schemesField_)).initialResidual()
-                                    );
+        const scalar maxResidual = cmptMax (
+                                dA2dtEqn.solve(mesh_.solutionDict().subDict("solvers").subDict(schemesField_)).initialResidual()
+                            );
         
+        //Info << "maxResidual: " << maxResidual << endl;
+
         if (maxResidual < absTol_ && nCorr_ != 1)
         {
             Info << "Converged in: " << i + 1 <<" iterations" << endl;
@@ -177,7 +180,7 @@ void Foam::fiberOrientation::pARD_RPR::computeC()
 {
     const volTensorField& eigVecs = closureModel_->eigVecs();
     
-    symmTensorField& C = C_.primitiveFieldRef();
+    symmTensorField& C = C_.internalField();
 
     forAll(C, cellI)
     {

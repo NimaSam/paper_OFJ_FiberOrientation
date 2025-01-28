@@ -77,9 +77,10 @@ void Foam::fiberOrientation::FT_RSC::solve()
 
     // Set coeff for implicit under-relaxation
     scalar relaxCoeff = 0.0;
-    if (mesh_.relaxEquation(schemesField_))
+    if (mesh_.solutionDict().found("relaxationFactors"))
     {
-        relaxCoeff = mesh_.equationRelaxationFactor(schemesField_);
+        const dictionary& relaxationFactors = mesh_.solutionDict().subDict("relaxationFactors").subDict("equations"); 
+       relaxCoeff = relaxationFactors.lookupOrDefault<scalar>(schemesField_, 0.0);
     }
 
     word divScheme("div(phi," + schemesField_ + ")");
@@ -87,7 +88,7 @@ void Foam::fiberOrientation::FT_RSC::solve()
     scalar maxResidual = 1.0;
     bool converged = false;
 
-    volScalarField alphaClip = pos0(alpha_ - alphaCutOff_);
+    volScalarField alphaClip = pos(alpha_ - alphaCutOff_);
     
     for (label i = 0; i < nCorr_; i++)
     {
@@ -118,9 +119,11 @@ void Foam::fiberOrientation::FT_RSC::solve()
 
         dA2dtEqn.relax(relaxCoeff);
         
-        maxResidual = cmptMax(
-                                dA2dtEqn.solve(mesh_.solverDict(schemesField_)).initialResidual()
-                             );
+        maxResidual = cmptMax (
+                                dA2dtEqn.solve(mesh_.solutionDict().subDict("solvers").subDict(schemesField_)).initialResidual()
+                            );
+        
+        //Info << "maxResidual: " << maxResidual << endl;
         
         if (maxResidual < absTol_ && nCorr_ != 1)
         {

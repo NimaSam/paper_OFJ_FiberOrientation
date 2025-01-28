@@ -62,9 +62,9 @@ CI_(
         : 
         computeCI() 
     ),
-D1_(modelProperties_.getOrDefault<scalar>("D1", 1.0)),
-D2_(modelProperties_.getOrDefault<scalar>("D2", 0.8)),
-D3_(modelProperties_.getOrDefault<scalar>("D3", 0.15)),
+D1_(modelProperties_.lookupOrDefault<scalar>("D1", 1.0)),
+D2_(modelProperties_.lookupOrDefault<scalar>("D2", 0.8)),
+D3_(modelProperties_.lookupOrDefault<scalar>("D3", 0.15)),
 C_
 (
     IOobject
@@ -77,7 +77,7 @@ C_
         false
     ),
     mesh,
-    dimensionedSymmTensor(dimless, Foam::Zero)
+    dimensionedSymmTensor("fiberModel_C_", dimless, symmTensor::zero)
 )
 {
     Info << *this << endl;
@@ -92,16 +92,19 @@ void Foam::fiberOrientation::MRD::solve()
 
     // Set coeff for implicit under-relaxation
     scalar relaxCoeff = 0.0;
-    if (mesh_.relaxEquation(schemesField_))
+
+    if (mesh_.solutionDict().found("relaxationFactors"))
     {
-        relaxCoeff = mesh_.equationRelaxationFactor(schemesField_);
+        const dictionary& relaxationFactors = mesh_.solutionDict().subDict("relaxationFactors").subDict("equations"); 
+       relaxCoeff = relaxationFactors.lookupOrDefault<scalar>(schemesField_, 0.0);
     }
 
     word divScheme("div(phi," + schemesField_ + ")");
 
     bool converged = false;
 
-    volScalarField alphaClip = pos0(alpha_ - alphaCutOff_);
+    //volScalarField alphaClip = pos0(alpha_ - alphaCutOff_);
+    volScalarField alphaClip = pos(alpha_ - alphaCutOff_);
 
     for (label i = 0; i < nCorr_ ; i++)
     {
@@ -148,9 +151,11 @@ void Foam::fiberOrientation::MRD::solve()
 
         dA2dtEqn.relax(relaxCoeff);
         
-        const scalar maxResidual = cmptMax(
-                                            dA2dtEqn.solve(mesh_.solverDict(schemesField_)).initialResidual()
-                                          );
+        const scalar maxResidual = cmptMax (
+                                dA2dtEqn.solve(mesh_.solutionDict().subDict("solvers").subDict(schemesField_)).initialResidual()
+                            );
+        
+        //Info << "maxResidual: " << maxResidual << endl;
         
         if (maxResidual < absTol_ && nCorr_ != 1)
         {
@@ -185,7 +190,7 @@ void Foam::fiberOrientation::MRD::computeC()
 {
     const volTensorField& eigVecs = closureModel_->eigVecs();
     
-    symmTensorField& C = C_.primitiveFieldRef();
+    symmTensorField& C = C_.internalField();
 
     forAll(C, cellI)
     {

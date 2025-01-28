@@ -94,8 +94,8 @@ void Foam::fiberOrientation::closureModels::ORE::computeRSCClosure
 {
     updateEigenValsAndVecs(false);
 
-    const volVectorField& eigVals = eigVals_.ref();
-    const volTensorField& eigVecs = eigVecs_.ref();
+    const volVectorField& eigVals = eigVals_;
+    const volTensorField& eigVecs = eigVecs_;
 
     forAll(D_doubleDot_A4, cellI)
     {   

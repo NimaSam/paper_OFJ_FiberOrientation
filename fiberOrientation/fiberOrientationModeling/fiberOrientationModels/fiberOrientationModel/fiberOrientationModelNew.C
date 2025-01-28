@@ -36,24 +36,30 @@ Foam::fiberOrientation::fiberOrientationModel::New
     const surfaceScalarField& phi
 )
 {
-    const word modelType(dict.subDict("fiberOrientationProperties").get<word>("model"));
+    const word modelType(dict.subDict("fiberOrientationProperties").lookup("model"));
 
-    // Info << nl << "Selected fiber orientation model: " << modelType << endl;
+    Info << nl << "Selected fiber orientation model: " << modelType << endl;
 
-    auto* ctorPtr = dictionaryConstructorTable(modelType);
+    //auto* ctorPtr = dictionaryConstructorTable(modelType);
+    typename dictionaryConstructorTable::iterator cstrIter =
+        dictionaryConstructorTablePtr_->find(modelType);
 
-    if (!ctorPtr)
+    if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalIOErrorInLookup
+        FatalErrorIn
         (
-            dict,
-            "fiberOrientationModel",
-            modelType,
-            *dictionaryConstructorTablePtr_
-        ) << exit(FatalIOError);
+            "fiberOrientation::New"
+            "(const dictionary&, const fvMesh&, const volVectorField&, const surfaceScalarField&)"
+        )
+            << "Unknown fiberOrientation type "
+            << modelType
+            << ", constructor not in hash table" << nl << nl
+            << "    Valid closureModel types are:" << nl
+            << dictionaryConstructorTablePtr_->sortedToc() << exit(FatalError);
     }
 
-    return autoPtr<fiberOrientationModel>(ctorPtr(dict, mesh, U, phi));
+    return autoPtr<fiberOrientation::fiberOrientationModel >(cstrIter()(dict, mesh, U, phi));
+
 }
 
 // ************************************************************************* //

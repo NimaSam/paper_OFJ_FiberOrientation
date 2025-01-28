@@ -72,7 +72,7 @@ initFields
             }
         }
 
-        phi.ref().oriented() = Sf.oriented();
+        phi.oriented() = Sf.oriented();
         phi.write();
 
         Info << "Finished flux" << endl;

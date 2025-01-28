@@ -12,8 +12,8 @@ find ./*/ -type f -name "All*" -exec chmod +x {} \;
 cd fiberOrientation
 ./Allwmake
 
-cd ../myPimpleFoam
-wmake
+#cd ../myPimpleFoam
+#wmake
 
 
 #------------------------------------------------------------------------------

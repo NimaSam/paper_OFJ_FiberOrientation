@@ -1,24 +1,21 @@
-// Solve the Momentum equation
+// Time derivative matrix
+fvVectorMatrix ddtUEqn(fvm::ddt(U));
 
-// MRF.correctBoundaryVelocity(U);
+// Convection-diffusion matrix
+fvVectorMatrix HUEqn
+(
+    fvm::div(phi, U)
+  + turbulence->divDevReff()
+);
 
-// tmp<fvVectorMatrix> tUEqn
-// (
-//     fvm::ddt(U) + fvm::div(phi, U)
-//   + MRF.DDt(U)
-//   + turbulence->divDevReff(U)
-//  ==
-//     fvOptions(U)
-// );
-// fvVectorMatrix& UEqn = tUEqn.ref();
-
-// UEqn.relax();
-
-// fvOptions.constrain(UEqn);
-
-// if (pimple.momentumPredictor())
-// {
-//     solve(UEqn == -fvc::grad(p));
-
-//     fvOptions.correct(U);
-// }
+if (pimple.momentumPredictor())
+{
+    // Solve momentum predictor
+    solve(relax(ddtUEqn + HUEqn) == -fvc::grad(p));
+}
+else
+{
+    // Explicit update
+    U = (ddtUEqn.H() + HUEqn.H() - fvc::grad(p))/(HUEqn.A() + ddtUEqn.A());
+    U.correctBoundaryConditions();
+}

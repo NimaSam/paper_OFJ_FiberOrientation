@@ -1,4 +1,5 @@
 EXE_INC = \
+    -Werror -w -Wno-unused-variable\
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/fileFormats/lnInclude \
     -I$(LIB_SRC)/surfMesh/lnInclude \
@@ -7,8 +8,7 @@ EXE_INC = \
 
 LIB_LIBS = \
     -lfiniteVolume \
-    -lOpenFOAM \
-    -lfileFormats \
+    -lfoam \
     -lsurfMesh \
     -lmeshTools
 

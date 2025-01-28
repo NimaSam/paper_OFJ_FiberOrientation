@@ -1,4 +1,4 @@
-// Info<< "Reading field p\n" << endl;
+Info<< "Reading field p\n" << endl;
 // volScalarField p
 // (
 //     IOobject
@@ -26,14 +26,12 @@ volVectorField U
     mesh
 );
 
-U.correctBoundaryConditions();
 #include "createPhi.H"
 
 // label pRefCell = 0;
 // scalar pRefValue = 0.0;
 // setRefCell(p, pimple.dict(), pRefCell, pRefValue);
-// mesh.setFluxRequired(p.name());
-
+// mesh.schemesDict().setFluxRequired(p.name());
 
 // singlePhaseTransportModel laminarTransport(U, phi);
 
@@ -42,6 +40,19 @@ U.correctBoundaryConditions();
 //     incompressible::turbulenceModel::New(U, phi, laminarTransport)
 // );
 
-// #include "createMRF.H"
-// #include "createFvOptions.H"
-
+// Info<< "Reading field rAU if present\n" << endl;
+// volScalarField rAU
+// (
+//     IOobject
+//     (
+//         "rAU",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::READ_IF_PRESENT,
+//         IOobject::AUTO_WRITE
+//     ),
+//     mesh,
+//     runTime.deltaT(),
+//     zeroGradientFvPatchScalarField::typeName
+// );
+// rAU.boundaryField().updateCoupledPatchFields();

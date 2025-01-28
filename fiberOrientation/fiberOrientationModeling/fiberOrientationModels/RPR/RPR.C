@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "RPR.H"
+#include "symmTensor.H"
         
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,13 +46,13 @@ Foam::fiberOrientation::RPR::RPR
 )
 :
 closureModel_(closureModel),
-k_(modelProperties.getOrDefault<scalar>("k", 0.0)),
+k_(modelProperties.lookupOrDefault<scalar>("k", 0.0)),
 alpha_(
             modelProperties.found("alpha") 
             ? readScalar(modelProperties.lookup("alpha")) 
             : 1.0 - readScalar(modelProperties.lookup("k"))
       ),
-beta_(modelProperties.getOrDefault<scalar>("beta", 0.0)),
+beta_(modelProperties.lookupOrDefault<scalar>("beta", 0.0)),
 Adot_RPR_
 (
     IOobject
@@ -64,7 +65,7 @@ Adot_RPR_
         false
     ),
     mesh,
-    dimensionedSymmTensor(dimless/dimTime, Foam::Zero)
+    dimensionedSymmTensor("fiberModel_Adot_RPR_", dimless/dimTime, symmTensor::zero)
 )
 {}
 
@@ -97,7 +98,7 @@ void Foam::fiberOrientation::RPR::computeRPR(const volSymmTensorField& Adot_HD_i
             lambda_Adot_HR_iARD.zz() = tmp6*e.xx() + tmp7*e.xy() + tmp8*e.xz();
         }
 
-        diagTensor lambdaDot_IOK(Foam::Zero);
+        diagTensor lambdaDot_IOK(diagTensor::zero);
 
         computeLambdaDotIOK(lambdaDot_IOK, lambda_Adot_HR_iARD);
 

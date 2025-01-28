@@ -35,27 +35,30 @@ SourceFiles
 #ifndef functionObjects_fiberOrientationModeling_H
 #define functionObjects_fiberOrientationModeling_H
 
-#include "fvMeshFunctionObject.H"
+#include "functionObject.H"
 #include "volFields.H"
-#include "fvOptionList.H"
 #include "fiberOrientationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-namespace functionObjects
-{
-
 /*---------------------------------------------------------------------------*\
                        Class fiberOrientationModeling Declaration
 \*---------------------------------------------------------------------------*/
 
 class fiberOrientationModeling
 :
-    public fvMeshFunctionObject
+    public functionObject
 {
     // Private data
+        //- Reference to main object registry
+        const Time& time_;
+
+        //- Region name
+        word regionName_;
+
+        const fvMesh& mesh_;
 
         //- Name of phase field (optional)
         word phaseName_;
@@ -102,21 +105,31 @@ public:
 
     // Member Functions
 
+        //- start is called at the start of the time-loop
+        virtual bool start();
+
+        //- Calculate the fiberOrientationModeling
+        virtual bool execute(const bool forceWrite);
+
         //- Read the fiberOrientationModeling data
         virtual bool read(const dictionary&);
 
-        //- Calculate the fiberOrientationModeling
-        virtual bool execute();
+        //- Update for changes of mesh
+        virtual void updateMesh(const mapPolyMesh&)
+        {}
 
-        //- Do nothing.
+        //- Update for mesh point-motion
+        virtual void movePoints(const pointField&)
+        {}
+
+         //- Do nothing.
         //  The volScalarField is registered and written automatically
         virtual bool write();
+
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-} // End namespace functionObjects
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

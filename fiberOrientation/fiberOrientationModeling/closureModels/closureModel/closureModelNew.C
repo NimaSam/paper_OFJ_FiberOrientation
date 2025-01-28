@@ -34,24 +34,30 @@ Foam::fiberOrientation::closureModel::New
     const volSymmTensorField& A2
 )
 {
-    const word modelType(dict.get<word>("closureModel"));
+    const word modelType(dict.lookup("closureModel"));
 
-    // Info<< nl << "Selected closure model: " << modelType << nl << endl;
+    Info<< nl << "Selected closure model: " << modelType << nl << endl;
 
-    auto* ctorPtr = dictionaryConstructorTable(modelType);
+    //auto* ctorPtr = dictionaryConstructorTable(modelType);
+    typename dictionaryConstructorTable::iterator cstrIter =
+        dictionaryConstructorTablePtr_->find(modelType);
 
-    if (!ctorPtr)
+    if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalIOErrorInLookup
+        FatalErrorIn
         (
-            dict,
-            "closureModel",
-            modelType,
-            *dictionaryConstructorTablePtr_
-        ) << exit(FatalIOError);
+            "fiberOrientation::closureModel::New"
+            "(const dictionary&,const volSymmTensorField&)"
+        )
+            << "Unknown fiberOrientation::closureModel type "
+            << modelType
+            << ", constructor not in hash table" << nl << nl
+            << "    Valid closureModel types are:" << nl
+            << dictionaryConstructorTablePtr_->sortedToc() << exit(FatalError);
     }
 
-    return autoPtr<closureModel>(ctorPtr(dict, A2));
+    return autoPtr<fiberOrientation::closureModel >(cstrIter()(dict, A2));
+
 }
 
 // ************************************************************************* //

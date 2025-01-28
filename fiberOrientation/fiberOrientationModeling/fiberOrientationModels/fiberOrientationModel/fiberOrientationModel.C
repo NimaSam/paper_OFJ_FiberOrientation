@@ -60,9 +60,9 @@ Foam::scalar Foam::fiberOrientation::fiberOrientationModel::fiberVolumeFraction(
     }
     else
     {
-        const dimensionedScalar polymerDensity  ("polymerDensity", dimDensity, fiberPropertiesDict_);
-        const dimensionedScalar fiberDensity    ("fiberDensity", dimDensity, fiberPropertiesDict_);
-        const dimensionedScalar fiberWeightFrac ("fiberWeightFraction", dimless, fiberPropertiesDict_);
+        const dimensionedScalar polymerDensity  ("polymerDensity", dimDensity, fiberPropertiesDict_.lookup("polymerDensity"));
+        const dimensionedScalar fiberDensity    ("fiberDensity", dimDensity, fiberPropertiesDict_.lookup("fiberDensity"));
+        const dimensionedScalar fiberWeightFrac ("fiberWeightFraction", dimless, fiberPropertiesDict_.lookup("fiberWeightFraction"));
 
         VFraction = (fiberWeightFrac/fiberDensity)/(
                                                         (fiberWeightFrac/fiberDensity) + ((1.0 - fiberWeightFrac)/polymerDensity)
@@ -79,23 +79,29 @@ Foam::volSymmTensorField& Foam::fiberOrientation::fiberOrientationModel::createA
 
     if (!mesh_.foundObject<volSymmTensorField>(fieldName))
     {
-        auto tfldPtr = tmp<volSymmTensorField>::New
+        tmp<volSymmTensorField> tfldPtr
         (
-            IOobject
+            new volSymmTensorField
             (
-                fieldName,
-                mesh_.time().timeName(),
-                mesh_,
-                IOobject::MUST_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh_
+                IOobject
+                (
+                    fieldName,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh_
+            )
         );
 
-        mesh_.objectRegistry::store(tfldPtr);
+        mesh_.objectRegistry::store(tfldPtr.ptr()); //TODO:check later, may tfldPtr.ptr() 
     }
 
-    return mesh_.lookupObjectRef<volSymmTensorField>(fieldName);
+    return //mesh_.lookupObjectRef<volSymmTensorField>(fieldName);
+    const_cast<volSymmTensorField&>(
+    mesh_.lookupObject<volSymmTensorField>(fieldName)
+    );
 }
 
 
@@ -104,21 +110,24 @@ Foam::fiberOrientation::fiberOrientationModel::constLookupOrConstruct(const word
 {
     if (!mesh_.foundObject<volScalarField>(name))
     {
-        auto tfldPtr = tmp<volScalarField>::New
+        tmp<volScalarField> tfldPtr
         (
-            IOobject
+            new volScalarField
             (
-                name,
-                mesh_.time().timeName(),
+                IOobject
+                (
+                    name,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
                 mesh_,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE
-            ),
-            mesh_,
-            dimensionedScalar(dimless, One)
+                dimensionedScalar("tfld_", dimless, 1.0) //TODO:check
+            )
         );
 
-        mesh_.objectRegistry::store(tfldPtr);
+        mesh_.objectRegistry::store(tfldPtr.ptr());
     }
 
     return mesh_.lookupObject<volScalarField>(name);
@@ -163,7 +172,7 @@ Foam::fiberOrientation::fiberOrientationModel::fiberOrientationModel
     phi_(phi),
     alpha_
     ( 
-        constLookupOrConstruct(dict.getOrDefault<word>("phase", "none"))
+        constLookupOrConstruct(dict.lookupOrDefault<word>("phase", "none"))
     ),
     A2_(createA2()), 
     L_
@@ -230,21 +239,21 @@ Foam::fiberOrientation::fiberOrientationModel::fiberOrientationModel
             false
 		),
 		mesh,
-        dimensionedSymmTensor("D_doubleDot_A4_", dimless/dimTime, Foam::Zero) // Made to cancel the the ddt(A_ij) 
+        dimensionedSymmTensor("D_doubleDot_A4_", dimless/dimTime, symmTensor::zero) // Made to cancel the the ddt(A_ij) 
 	),
     xi_(
          fiberPropertiesDict_.found("xi") ? 
          readScalar(fiberPropertiesDict_.lookup("xi")) 
          : computeXi() 
         ),
-    alphaCutOff_(dict.getOrDefault<scalar>("alphaCutOff", 0.0)),
+    alphaCutOff_(dict.lookupOrDefault<scalar>("alphaCutOff", 0.0)),
     closureModel_(fiberOrientation::closureModel::New(fiberPropertiesDict_, A2_)),
     solutionPropertiesDict_(dict.subDict("solutionProperties")),
-    nCorr_ (solutionPropertiesDict_.getOrDefault<label>("nCorr", 1)),
-    schemesField_(solutionPropertiesDict_.getOrDefault("schemesField", word("A2"))),
-    absTol_(solutionPropertiesDict_.getOrDefault<scalar>("absTol", 1e-5)),
-    normalize_(solutionPropertiesDict_.getOrDefault<Switch>("normalize", false) ),
-    updateFlowFields_(solutionPropertiesDict_.getOrDefault<Switch>("updateFlowFields", true) )
+    nCorr_ (solutionPropertiesDict_.lookupOrDefault<label>("nCorr", 1)),
+    schemesField_(solutionPropertiesDict_.lookupOrDefault("schemesField", word("A2"))),
+    absTol_(solutionPropertiesDict_.lookupOrDefault<scalar>("absTol", 1e-5)),
+    normalize_(solutionPropertiesDict_.lookupOrDefault<Switch>("normalize", false) ),
+    updateFlowFields_(solutionPropertiesDict_.lookupOrDefault<Switch>("updateFlowFields", true) )
 {}
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -271,8 +280,8 @@ void Foam::fiberOrientation::fiberOrientationModel::correctFlowFieldTensors()
 
 bool Foam::fiberOrientation::fiberOrientationModel::read()
 {
-    solutionPropertiesDict_.readEntry("nCorr", nCorr_);
-    solutionPropertiesDict_.readEntry("absTol", absTol_);
+    nCorr_ = solutionPropertiesDict_.readIfPresent("nCorr", nCorr_);
+    absTol_ = readScalar(solutionPropertiesDict_.lookup("absTol"));
     solutionPropertiesDict_.readIfPresent("normalize", normalize_);
     solutionPropertiesDict_.readIfPresent("updateFlowFields", updateFlowFields_);
 
@@ -307,10 +316,10 @@ void Foam::fiberOrientation::fiberOrientationModel::writeWithSubDict
     if (fiberPropertiesDict_.found("ar"))
         dict2.add("ar", name(readScalar(fiberPropertiesDict_.lookup("ar"))));
 
-    dict2.add("model", fiberPropertiesDict_.get<word>("model"));
+    dict2.add("model", fiberPropertiesDict_.lookup("model"));
 
     dict2.add("xi", xi_);
-    dict2.add("closureModel", fiberPropertiesDict_.get<word>("closureModel"));
+    dict2.add("closureModel", fiberPropertiesDict_.lookup("closureModel"));
 
     if (fiberPropertiesDict_.found("volumeFraction"))
         dict2.add("volumeFraction", name(readScalar(fiberPropertiesDict_.lookup("volumeFraction"))));

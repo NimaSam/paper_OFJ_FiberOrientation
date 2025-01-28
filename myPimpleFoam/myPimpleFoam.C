@@ -1,134 +1,93 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | www.openfoam.com
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
-    Copyright (C) 2011-2017 OpenFOAM Foundation
-    Copyright (C) 2019 OpenCFD Ltd.
+  \\      /  F ield         | foam-extend: Open Source CFD
+   \\    /   O peration     | Version:     5.0
+    \\  /    A nd           | Web:         http://www.foam-extend.org
+     \\/     M anipulation  | For copyright notice see file Copyright
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of foam-extend.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    foam-extend is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the
+    Free Software Foundation, either version 3 of the License, or (at your
+    option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-    for more details.
+    foam-extend is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with foam-extend.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    pimpleFoam.C
-
-Group
-    grpIncompressibleSolvers
+    pimpleFoam
 
 Description
-    
+    Large time-step transient solver for incompressible turbulent flow using
+    the PIMPLE (merged PISO-SIMPLE) algorithm.
+
+    Turbulence modelling is generic, i.e. laminar, RAS or LES may be selected.
+
+    Consistent formulation without time-step and relaxation dependence by Jasak
+    and Tukovic
+
+Author
+    Hrvoje Jasak, Wikki Ltd.  All rights reserved
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "dynamicFvMesh.H"
 #include "singlePhaseTransportModel.H"
-#include "turbulentTransportModel.H"
+#include "turbulenceModel.H"
 #include "pimpleControl.H"
-#include "CorrectPhi.H"
-#include "fvOptions.H"
-#include "IOdictionary.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
-    #include "postProcess.H"
+#   include "setRootCase.H"
+#   include "createTime.H"
+#   include "createMesh.H"
 
-    #include "addCheckCaseOptions.H"
-    #include "setRootCaseLists.H"
-    #include "createTime.H"
-    #include "createDynamicFvMesh.H"
-    #include "initContinuityErrs.H"
-    #include "createDyMControls.H"
-    #include "createFields.H"
-    #include "createUfIfPresent.H"
-    #include "CourantNo.H"
-    #include "setInitialDeltaT.H"
+    pimpleControl pimple(mesh);
 
-    // turbulence->validate();
-
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#   include "createFields.H"
+#   include "initContinuityErrs.H"
+#   include "createTimeControls.H"
 
     Info<< "\nStarting time loop\n" << endl;
 
     while (runTime.run())
     {
-        #include "readDyMControls.H"
-        #include "CourantNo.H"
-        #include "setDeltaT.H"
+#       include "readTimeControls.H"
+#       include "CourantNo.H"
+#       include "setDeltaT.H"
 
-        ++runTime;
+        runTime++;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        #include "continuityErrs.H"
-
-        // --- Pressure-velocity PIMPLE corrector loop
+        // --- PIMPLE loop
         while (pimple.loop())
         {
-            // if (pimple.firstIter() || moveMeshOuterCorrectors)
-            // {
-                // Do any mesh changes
-                // mesh.controlledUpdate();
+// #           include "UEqn.H"
 
-                // if (mesh.changing())
-                // {
-                    // MRF.update();
+//             // --- PISO loop
+//             while (pimple.correct())
+//             {
+// #               include "pEqn.H"
+//             }
 
-                    // if (correctPhi)
-                    // {
-                    //     // Calculate absolute flux
-                    //     // from the mapped surface velocity
-                    //     phi = mesh.Sf() & Uf();
-
-                    //     #include "correctPhi.H"
-
-                    //     // Make the flux relative to the mesh motion
-                    //     fvc::makeRelative(phi, U);
-                    // }
-
-                    // if (checkMeshCourantNo)
-                    // {
-                    //     #include "meshCourantNo.H"
-                    // }
-            //     }
-            // }
-
-            // U.correctBoundaryConditions();
-            // #include "UEqn.H"
-
-            // // --- Pressure corrector loop
-            // while (pimple.correct())
-            // {
-            //     #include "pEqn.H"
-            // }
-
-            // if (pimple.turbCorr())
-            // {
-            //     laminarTransport.correct();
-            //     turbulence->correct();
-            // }
+//             turbulence->correct();
         }
 
         runTime.write();
 
-        runTime.printExecutionTime(Info);
+        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+            << nl << endl;
     }
 
     Info<< "End\n" << endl;

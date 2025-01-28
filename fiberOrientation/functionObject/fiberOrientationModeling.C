@@ -33,8 +33,6 @@ License
 
 namespace Foam
 {
-namespace functionObjects
-{
     defineTypeNameAndDebug(fiberOrientationModeling, 0);
 
     addToRunTimeSelectionTable
@@ -44,27 +42,31 @@ namespace functionObjects
         dictionary
     );
 }
-}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::functionObjects::fiberOrientationModeling::fiberOrientationModeling
+Foam::fiberOrientationModeling::fiberOrientationModeling
 (
     const word& name,
     const Time& runTime,
     const dictionary& dict
 )
 :
-    fvMeshFunctionObject(name, runTime, dict),
-    phaseName_(dict.getOrDefault<word>("phase", "none")),
+    functionObject(name),
+    time_(runTime),
+    regionName_(polyMesh::defaultRegion),
+    mesh_(time_.lookupObject<fvMesh>(regionName_)),
+    phaseName_(dict.lookupOrDefault<word>("phase", "none")),
     phiName_(   phaseName_ == "none" 
                 ? 
-                dict.getOrDefault<word>("phi", "phi"):
-                dict.getOrDefault<word>("phasePhiCompressed", "alphaPhiUn") ),
+                dict.lookupOrDefault<word>("phi", "phi"):
+                dict.lookupOrDefault<word>("phasePhiCompressed", "alphaPhiUn") ),
     U_( mesh_.lookupObject<volVectorField>("U") ),
     phi_( mesh_.lookupObject<surfaceScalarField>(phiName_) ),
     fiberOrientationModel_(fiberOrientation::fiberOrientationModel::New(dict, mesh_, U_, phi_))
 {
+
+    
     read(dict);
 
     forAll(mesh_.boundaryMesh(), patchI)
@@ -86,45 +88,51 @@ Foam::functionObjects::fiberOrientationModeling::fiberOrientationModeling
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::functionObjects::fiberOrientationModeling::~fiberOrientationModeling()
+Foam::fiberOrientationModeling::~fiberOrientationModeling()
 {
     Info << "FiberOrientation FO was destroyed" << endl;
 } 
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-bool Foam::functionObjects::fiberOrientationModeling::read(const dictionary& dict)
+bool Foam::fiberOrientationModeling::start()
 {
-    fvMeshFunctionObject::read(dict);
+    return true;
+}
+
+bool Foam::fiberOrientationModeling::read(const dictionary& dict)
+{
+    
 
     dict.readIfPresent("phase", phaseName_);
 
     if (phaseName_ != "none")
     {
-        phiName_ = dict.getOrDefault<word>("phasePhiCompressed", "alphaPhiUn");
+        phiName_ = dict.lookupOrDefault<word>("phasePhiCompressed", "alphaPhiUn");
     }
     else
     {
-        phiName_ = dict.getOrDefault<word>("phi", "phi");
+        phiName_ = dict.lookupOrDefault<word>("phi", "phi");
     }
+    
+    //functionObject::read(dict);
 
-    return true;
+    return false;
 }
 
 
-bool Foam::functionObjects::fiberOrientationModeling::execute()
+bool Foam::fiberOrientationModeling::execute(const bool forceWrite)
 {
-    Log << type() << ":\tSolving fiber orientation:" << endl;
+    Info << type() << ":\tSolving fiber orientation:" << endl;
 
     fiberOrientationModel_->solve();
 
-    Log << endl;
+    Info << endl;
     
     return true;
 }
 
-bool Foam::functionObjects::fiberOrientationModeling::write()
+bool Foam::fiberOrientationModeling::write()
 {
     return true;
 }
