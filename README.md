@@ -1,3 +1,5 @@
+This is the a fork of main repo which ported to Foam-extend-50
+
 Repository associated to the paper entitled **An Open-Source Framework for Modeling the Evolution of Fiber Orientation** by Ramoa *et al.*
 * doi: https://doi.org/10.51560/ofj.v5.131
 
